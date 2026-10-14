@@ -1,5 +1,6 @@
 ﻿import React, { useState, useEffect } from 'react';
 import ListaPaquetes from './ListaPaquetes';
+import ListaRepartidores from './ListaRepartidores';
 
 const API_BASE_URL = 'http://localhost:5000/api/dispatch/v1';
 
@@ -107,6 +108,14 @@ export default function App() {
                     selectedPaquete={selectedPaquete}
                     onSelectPaquete={setSelectedPaquete}
                     onPaqueteCreado={(nuevo) => setPaquetes(prev => [...prev, nuevo])}
+                />
+
+                <ListaRepartidores
+                    repartidores={repartidores}
+                    selectedRepartidor={selectedRepartidor}
+                    onSelectRepartidor={setSelectedRepartidor}
+                    selectedPaquete={selectedPaquete}
+                    onRepartidorCreado={(nuevo) => setRepartidores(prev => [...prev, nuevo])}
                 />
 
             </main>
