@@ -68,5 +68,23 @@ namespace SistemaLogistica.API.Controllers
                 return StatusCode(500, new { error = "Error interno en el servidor logístico.", detalle = ex.Message });
             }
         }
+        [HttpPost("packages")]
+        public async Task<IActionResult> CrearPaquete([FromBody] Paquete nuevoPaquete)
+        {
+            if (!ModelState.IsValid) return BadRequest(ModelState);
+
+            // Validar si el ID ya existe para evitar duplicados
+            var existe = await _context.Paquetes.AnyAsync(p => p.Id == nuevoPaquete.Id);
+            if (existe) return BadRequest(new { error = $"El código de paquete {nuevoPaquete.Id} ya está registrado." });
+
+            // Asignar estado por defecto e insertar
+            nuevoPaquete.Estado = "Pendiente";
+            nuevoPaquete.RepartidorId = null;
+
+            _context.Paquetes.Add(nuevoPaquete);
+            await _context.SaveChangesAsync();
+
+            return Ok(nuevoPaquete);
+        }
     }
 }
