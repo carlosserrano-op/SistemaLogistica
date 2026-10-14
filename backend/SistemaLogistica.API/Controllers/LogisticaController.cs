@@ -72,8 +72,18 @@ namespace SistemaLogistica.API.Controllers
                 {
                     await transaction.CommitAsync();
                 }
-
-                return Ok(new { mensaje = "Asignación exitosa.", nuevaCapacidad = repartidor.CapacidadDisponibleKg });
+                return Ok(new { 
+                    mensaje = "Asignación exitosa.", 
+                    nuevaCapacidad = repartidor.CapacidadDisponibleKg,
+                    despachoInfo = new {
+                        id = Guid.NewGuid().ToString().Substring(0, 8),
+                        paqueteId = paquete.Id,
+                        repartidorNombre = repartidor.Nombre,
+                        destino = paquete.Destino,
+                        peso = paquete.PesoKg,
+                        fecha = DateTime.Now.ToString("HH:mm:ss")
+                    }
+                });
             } 
             catch (DbUpdateConcurrencyException)
             {
