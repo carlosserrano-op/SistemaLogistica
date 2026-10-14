@@ -19,7 +19,25 @@ namespace SistemaLogistica.API.Controllers
             _context = context;
         }
 
-        // POST /api/dispatch/v1/assign
+        // GET:/api/dispatch/v1/packages
+        [HttpGet("packages")]
+        public async Task<ActionResult<IEnumerable<Paquete>>> GetPendingPackages()
+        {
+            var packages = await _context.Paquetes
+                .Where(p => p.Estado == "Pendiente")
+                .ToListAsync();
+            return Ok(packages);
+        }
+        // GET:/api/dispatch/v1/dispatchers
+        [HttpGet("dispatchers")]
+        public async Task<ActionResult<IEnumerable<Repartidor>>> GetDispatchers()
+        {
+            var dispatchers = await _context.Repartidores
+                .Include(r => r.Paquetes) // 👈 Trae de la base de datos el historial de paquetes vinculados
+                .ToListAsync();
+            return Ok(dispatchers);
+        }
+
         [HttpPost("assign")]
         public async Task<IActionResult> AssignPackage([FromBody] AsignacionRequest request)
         {
@@ -40,7 +58,7 @@ namespace SistemaLogistica.API.Controllers
                 if (repartidor == null)
                     return NotFound(new { error = "El repartidor seleccionado no existe." });
 
-                // capacidad de carga
+                // Validación de la capacidad de carga
                 if (repartidor.CapacidadDisponibleKg < paquete.PesoKg)
                     return BadRequest(new { error = $"Capacidad insuficiente. El paquete pesa {paquete.PesoKg}kg pero el repartidor solo tiene libre {repartidor.CapacidadDisponibleKg}kg." });
 
@@ -56,7 +74,7 @@ namespace SistemaLogistica.API.Controllers
                 }
 
                 return Ok(new { mensaje = "Asignación exitosa.", nuevaCapacidad = repartidor.CapacidadDisponibleKg });
-            }
+            } 
             catch (DbUpdateConcurrencyException)
             {
                 if (transaction != null) await transaction.RollbackAsync();
@@ -73,11 +91,11 @@ namespace SistemaLogistica.API.Controllers
         {
             if (!ModelState.IsValid) return BadRequest(ModelState);
 
-            // Validar si el ID ya existe para evitar duplicados
+            // Evita duplicados
             var existe = await _context.Paquetes.AnyAsync(p => p.Id == nuevoPaquete.Id);
             if (existe) return BadRequest(new { error = $"El código de paquete {nuevoPaquete.Id} ya está registrado." });
 
-            // Asignar estado por defecto e insertar
+            // Asignación de estados
             nuevoPaquete.Estado = "Pendiente";
             nuevoPaquete.RepartidorId = null;
 
@@ -85,6 +103,22 @@ namespace SistemaLogistica.API.Controllers
             await _context.SaveChangesAsync();
 
             return Ok(nuevoPaquete);
+        }
+        [HttpPost("dispatchers")]
+        public async Task<IActionResult> CrearRepartidor([FromBody] Repartidor nuevoRepartidor)
+        {
+            if (!ModelState.IsValid) return BadRequest(ModelState);
+
+            var existe = await _context.Repartidores.AnyAsync(r => r.Id == nuevoRepartidor.Id);
+            if (existe) return BadRequest(new { error = $"El repartidor con ID {nuevoRepartidor.Id} ya existe." });
+
+            // Capacidad disponible inicial
+            nuevoRepartidor.CapacidadDisponibleKg = nuevoRepartidor.CapacidadMaximaKg;
+
+            _context.Repartidores.Add(nuevoRepartidor);
+            await _context.SaveChangesAsync();
+
+            return Ok(nuevoRepartidor);
         }
     }
 }
