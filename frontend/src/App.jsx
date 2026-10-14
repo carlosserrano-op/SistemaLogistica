@@ -1,6 +1,7 @@
 ﻿import React, { useState, useEffect } from 'react';
 import ListaPaquetes from './ListaPaquetes';
 import ListaRepartidores from './ListaRepartidores';
+import HistorialDespachos from './HistorialDespacho';
 
 const API_BASE_URL = 'http://localhost:5000/api/dispatch/v1';
 
@@ -11,7 +12,7 @@ export default function App() {
     const [selectedRepartidor, setSelectedRepartidor] = useState(null);
     const [loading, setLoading] = useState(false);
     const [mensajeAlerta, setMensajeAlerta] = useState({ tipo: '', texto: '' });
-
+    const [historial, setHistorial] = useState([]);
     useEffect(() => {
         cargarDatos();
     }, []);
@@ -54,6 +55,7 @@ export default function App() {
 
             if (response.ok) {
                 setPaquetes(prev => prev.filter(p => p.id !== selectedPaquete.id));
+
                 setRepartidores(prev => prev.map(rep => {
                     if (rep.id === selectedRepartidor.id) {
                         return {
@@ -62,9 +64,11 @@ export default function App() {
                             paquetes: [...(rep.paquetes || []), selectedPaquete]
                         };
                     }
-                    return rep;
+                    return rep; 
                 }));
-
+                if (resultado.despachoInfo) {
+                    setHistorial(prev => [resultado.despachoInfo, ...prev]);
+                }
                 mostrarAlerta('exito', `¡Asignación exitosa! El paquete ${selectedPaquete.id} fue despachado.`);
                 setSelectedPaquete(null);
                 setSelectedRepartidor(null);
@@ -79,10 +83,8 @@ export default function App() {
     };
 
     return (
-        // 🏛️ El cuerpo general (body) se queda estrictamente Blanco Puro (bg-white)
         <div className="min-h-screen bg-white text-slate-800 flex flex-col font-sans">
 
-            {/* Encabezado Profesional - Fondo Blanco con un borde suave */}
             <header className="bg-white border-b border-slate-200 p-4">
                 <div className="max-w-7xl mx-auto flex justify-between items-center">
                     <div>
@@ -92,7 +94,6 @@ export default function App() {
                 </div>
             </header>
 
-            {/* Mensajes temporales tipo Banner */}
             {mensajeAlerta.texto && (
                 <div className={`p-3 text-center font-semibold text-sm transition-all duration-300 ${mensajeAlerta.tipo === 'error' ? 'bg-red-500 text-white' : 'bg-emerald-600 text-white'
                     }`}>
@@ -100,7 +101,6 @@ export default function App() {
                 </div>
             )}
 
-            {/* Grid de Columnas Modulares sobre fondo Blanco */}
             <main className="flex-1 max-w-7xl w-full mx-auto grid grid-cols-1 md:grid-cols-2 gap-6 p-6">
 
                 <ListaPaquetes
@@ -119,31 +119,25 @@ export default function App() {
                 />
 
             </main>
-
-            {/* Barra de Control Inferior - Color Azul Indigo Atenuado muy elegante */}
-            {/* Barra de Control Inferior - Diseño con Azul Eléctrico Alegre y Vibrante */}
+            <HistorialDespachos historial={historial} />
             <footer className="bg-indigo-600/75 text-white p-4 mt-auto border-t border-indigo-50070 shadow-2xl">
                 <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4">
 
                     <div className="flex flex-wrap gap-4 w-full sm:w-auto">
-                        {/* Resumen Informativo del Paquete - Fondo translúcido blanco suave */}
                         <div className="bg-white/20 px-4 py-2.5 rounded-xl border border-white/10 min-w-[180px]">
                             <span className="text-indigo-100 text-[10px] font-bold uppercase tracking-wider block">Paquete</span>
-                            <span className="font-extrabold text-sm text-yellow-300"> {/* Cambiado a amarillo brillante para resaltar en lo alegre */}
+                            <span className="font-extrabold text-sm text-yellow-300">
                                 {selectedPaquete ? `${selectedPaquete.id} (${selectedPaquete.pesoKg} kg)` : "Ninguno"}
                             </span>
                         </div>
 
-                        {/* Resumen Informativo del Repartidor - Fondo translúcido blanco suave */}
                         <div className="bg-white/20 px-4 py-2.5 rounded-xl border border-white/10 min-w-[180px]">
                             <span className="text-indigo-100 text-[10px] font-bold uppercase tracking-wider block">Repartidor Destinado</span>
-                            <span className="font-extrabold text-sm text-lime-300"> {/* Cambiado a verde lima brillante para contrastar alegre */}
+                            <span className="font-extrabold text-sm text-lime-300"> 
                                 {selectedRepartidor ? selectedRepartidor.nombre : "Ninguno"}
                             </span>
                         </div>
                     </div>
-
-                    {/* Botón de Confirmación Principal - Blanco Sólido Limpio con letras Indigo */}
                     <button
                         onClick={ejecutarAsignacion}
                         disabled={!selectedPaquete || !selectedRepartidor || loading}
